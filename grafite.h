@@ -281,10 +281,12 @@ internal inline void gf_free_file_data(gf_file_data *file_data){
 //////////////////////////////
 /// Graphics Implementation
 //////////////////////////////
+
+#include "./external/glad/glad.h"
 #define MAX_INFO_LOG_LENGTH 512
-internal inline u32 gf_load_shader_from_file_gl(const char* vertex_file, const char *fragment_file){
-    gf_file_data *vertex_file = gf_read_entire_file(vertex_file,1);
-    gf_file_data *fragment_file = gf_read_entire_file(fragment_file,1);
+internal inline u32 gf_load_shader_from_file_gl(const char* vertex_path, const char *fragment_path){
+    gf_file_data *vertex_file = gf_read_entire_file(vertex_path,1);
+    gf_file_data *fragment_file = gf_read_entire_file(fragment_path,1);
     u32 program_id = gf_load_shader_from_source_gl(vertex_file->data,fragment_file->data);
     gf_free_file_data(vertex_file);
     gf_free_file_data(fragment_file);
@@ -298,7 +300,7 @@ internal inline u32 gf_load_shader_from_source_gl(const char *vertex_source, con
     u32 program_id = glCreateProgram();
 
     glShaderSource(vertex_id, 1, &vertex_source, NULL);
-    glShaderSource(fragment_source, 1, &fragment_source, NULL);
+    glShaderSource(fragment_id, 1, &fragment_source, NULL);
     glCompileShader(vertex_id);
     glGetShaderInfoLog(vertex_id, sizeof(message_buffer), &message_size, message_buffer);
     printf("[ShaderInfo - (Vertex)]:\n%s", message_buffer);
@@ -329,7 +331,6 @@ internal inline u32 gf_create_empty_texture(u32 width, u32 height){
 #endif
 
 #ifdef GRAFITE_GLFW_HIJACK_MAIN
-#include "./external/glad/glad.h"
 #include <GLFW/glfw3.h>
 
 extern gf_app_desc gf_main(int argc, char **argv);

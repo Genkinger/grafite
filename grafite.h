@@ -90,6 +90,10 @@ internal inline r32 gf_vec3_dist(gf_vec3 a, gf_vec3 b);
 internal inline r32 gf_vec3_dot(gf_vec3 a, gf_vec3 b);
 
 
+internal inline r32 gf_map(r32 x, r32 in_min, r32 in_max, r32 out_min, r32 out_max);
+internal inline r32 gf_lerp(r32 v0, r32 v1, r32 t);
+
+
 //////////////////////////////
 /// Color
 //////////////////////////////
@@ -98,6 +102,27 @@ typedef struct {
 } gf_color;
 
 internal inline gf_color gf_color_from_hex_string(const char * hex_string);
+
+
+//////////////////////////////
+/// Utility
+//////////////////////////////
+
+typedef struct {
+    u8 *data;
+    s64 size;
+} gf_file_data;
+
+internal inline gf_file_data *gf_read_entire_file(const char* file_path, b32 text);
+internal inline void gf_free_file_data(gf_file_data *file_data);
+
+//////////////////////////////
+/// Graphics
+//////////////////////////////
+internal inline u32 gf_load_shader_from_source_gl(const char *vertex_source, const char *fragment_source);
+internal inline u32 gf_load_shader_from_file_gl(const char* vertex_file, const char *fragment_file);
+internal inline u32 gf_create_empty_texture(u32 width, u32 height);
+
 
 
 //////////////////////////////
@@ -203,6 +228,16 @@ internal inline r32 gf_vec3_dot(gf_vec3 a, gf_vec3 b){
     return a.x*b.x+a.y*b.y+a.z*b.z;
 }
 
+/* misc */
+internal inline r32 gf_map(r32 x, r32 in_min, r32 in_max, r32 out_min, r32 out_max) {
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+internal inline r32 gf_lerp(r32 v0, r32 v1, r32 t) {
+  return v0 + t * (v1 - v0);
+}
+
+
 
 //////////////////////////////
 /// Color Implementation
@@ -216,6 +251,78 @@ internal inline gf_color gf_color_from_hex_string(const char * hex_string){
     ret.b = (packed >> 0) & 0xFF;
     ret.a = 255;
     return ret;
+}
+
+//////////////////////////////
+/// Utility Implementation
+//////////////////////////////
+
+internal inline gf_file_data* gf_read_entire_file(const char* file_path, b32 text){
+    gf_file_data *file_data = (gf_file_data*)malloc(sizeof(gf_file_data));
+    FILE *fd = fopen(file_path, text ? "rt" : "rb");
+    fseek(fd,0,SEEK_END);
+    file_data->size = ftell(fd);
+    rewind(fd);
+    file_data->data = (u8*)malloc(file_data->size + (text ? 1 : 0));
+    fread(file_data->data,1,file_data->size,fd);
+    if(text){
+        file_data->data[file_data->size] = '\0';
+    }
+    fclose(fd);
+    return file_data;
+}
+
+internal inline void gf_free_file_data(gf_file_data *file_data){
+    free(file_data->data);
+    file_data = NULL;
+}
+
+
+//////////////////////////////
+/// Graphics Implementation
+//////////////////////////////
+#define MAX_INFO_LOG_LENGTH 512
+internal inline u32 gf_load_shader_from_file_gl(const char* vertex_file, const char *fragment_file){
+    gf_file_data *vertex_file = gf_read_entire_file(vertex_file,1);
+    gf_file_data *fragment_file = gf_read_entire_file(fragment_file,1);
+    u32 program_id = gf_load_shader_from_source_gl(vertex_file->data,fragment_file->data);
+    gf_free_file_data(vertex_file);
+    gf_free_file_data(fragment_file);
+    return program_id;
+}
+internal inline u32 gf_load_shader_from_source_gl(const char *vertex_source, const char *fragment_source){
+    static char message_buffer[MAX_INFO_LOG_LENGTH];
+    int32_t message_size;
+    u32 vertex_id = glCreateShader(GL_VERTEX_SHADER);
+    u32 fragment_id = glCreateShader(GL_FRAGMENT_SHADER);
+    u32 program_id = glCreateProgram();
+
+    glShaderSource(vertex_id, 1, &vertex_source, NULL);
+    glShaderSource(fragment_source, 1, &fragment_source, NULL);
+    glCompileShader(vertex_id);
+    glGetShaderInfoLog(vertex_id, sizeof(message_buffer), &message_size, message_buffer);
+    printf("[ShaderInfo - (Vertex)]:\n%s", message_buffer);
+    glCompileShader(fragment_id);
+    glGetShaderInfoLog(fragment_id, sizeof(message_buffer), &message_size, message_buffer);
+    printf("[ShaderInfo - (Fragment)]:\n%s", message_buffer);
+    glAttachShader(program_id, vertex_id);
+    glAttachShader(program_id, fragment_id);
+    glLinkProgram(program_id);
+    glGetProgramInfoLog(program_id,sizeof(message_buffer),&message_size,message_buffer);
+    printf("[ProgramInfo]:\n%s", message_buffer);
+    glDeleteShader(vertex_id);
+    glDeleteShader(fragment_id);
+
+    return program_id;
+}
+internal inline u32 gf_create_empty_texture(u32 width, u32 height){
+    u32 texture_id;
+    glGenTextures(1, &texture_id);
+    glBindTexture(GL_TEXTURE_2D, texture_id);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    return texture_id;
 }
 
 #undef GRAFITE_IMPL

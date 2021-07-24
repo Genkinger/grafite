@@ -3,8 +3,7 @@
 #include "grafite.h"
 
 void init(){
-    printf("Hello From Init\n");
-    glClearColor(1,0,0,1);
+    glClearColor(0.5,0,0.6,1);
 }
 
 void update(){

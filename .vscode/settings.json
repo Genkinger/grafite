@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "grafite.h": "c",
+        "glad.h": "c",
+        "glfw3.h": "c"
+    }
+}

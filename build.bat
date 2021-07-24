@@ -1,0 +1,1 @@
+gcc .\*.c .\external\glad\glad.c -IC:\lib\glfw-3.3.4.bin.WIN64\include\ -LC:\lib\glfw-3.3.4.bin.WIN64\lib-mingw-w64\ -lglfw3 -lopengl32 -lgdi32 -o prog.exe
